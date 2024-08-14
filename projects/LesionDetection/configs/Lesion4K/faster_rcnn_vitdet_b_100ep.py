@@ -1,3 +1,5 @@
+import os
+import time
 from functools import partial
 from fvcore.common.param_scheduler import MultiStepParamScheduler
 
@@ -5,6 +7,7 @@ from detectron2 import model_zoo
 from detectron2.config import LazyCall as L
 from detectron2.solver import WarmupParamScheduler
 from detectron2.modeling.backbone.vit import get_vit_lr_decay_rate
+from detectron2.evaluation import COCOEvaluator
 
 from ..common.data_loader_lsj import dataloader
 from ..common.models.faster_rcnn_vitdet import model
@@ -15,11 +18,17 @@ from ..common.train import train
 model.roi_heads.num_classes = 16
 # Initialization and trainer settings
 # train = model_zoo.get_config("../projects/LesionDetection/common/train.py").train
-train.output_dir = "./output/"
+
+train.output_dir = os.path.join("./logs", os.path.basename(__file__).split(".")[0], time.strftime("%Y%m%d-%H%M%S",time.localtime()))
 train.amp.enabled = False
 train.ddp.fp16_compression = False
 
 dataloader.train.total_batch_size = 4
+dataloader.evaluator = L(COCOEvaluator)(
+    dataset_name="${..test.dataset.names}",
+    output_dir=train.output_dir,
+    use_fast_impl=False,
+)
 
 ## TODO 修改权重
 train.init_checkpoint = (
