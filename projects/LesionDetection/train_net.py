@@ -31,8 +31,6 @@ from detectron2.evaluation import inference_on_dataset, print_csv_format
 from detectron2.utils import comm
 from lesion_detection.data.datasets.Lesion4K import register_Lesion4K_dataset
 logger = logging.getLogger("detectron2")
-# wandb.login()
-# wandb.init(project="detectron2", sync_tensorboard=True)
 
 def do_test(cfg, model):
     if "evaluator" in cfg.dataloader:
@@ -64,6 +62,8 @@ def do_train(args, cfg):
                 checkpointer (dict)
                 ddp (dict)
     """
+    if comm.is_main_process():
+        wandb.init(project="detectron2", sync_tensorboard=True)
     model = instantiate(cfg.model)
     logger = logging.getLogger("detectron2")
     logger.info("Model:\n{}".format(model))
@@ -96,6 +96,11 @@ def do_train(args, cfg):
                     default_writers(cfg.train.output_dir, cfg.train.max_iter),
                     period=cfg.train.log_period,
                 )
+                if comm.is_main_process()
+                else None
+            ),
+            (
+                hooks.BestCheckpointer(cfg.train.eval_period, checkpointer, val_metric="bbox/AP50", mode="max", file_prefix = "model_best_AP50")
                 if comm.is_main_process()
                 else None
             ),
