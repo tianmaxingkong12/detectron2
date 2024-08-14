@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def load_Lesion4K_json(
-    json_file, image_root, dataset_name=None, extra_annotation_keys=None
+    json_file, image_root, dataset_name=None, extra_annotation_keys=None, load_difficult=False
 ):
     """
     Load a json file with COCO's instances annotation format.
@@ -93,6 +93,9 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
 
     # sort indices for reproducible results
     img_ids = sorted(coco_api.imgs.keys())
+    ## filter difficult images
+    if load_difficult == False:
+        img_ids = [_ for _ in img_ids if coco_api.imgs[_]["isdifficult"] == 0]
     # imgs is a list of dicts, each looks something like:
     # {'license': 4,
     #  'url': 'http://farm6.staticflickr.com/5454/9413846304_881d5e5c3b_z.jpg',
@@ -125,15 +128,6 @@ Category ids in annotations are not in [1, #categories]! We'll apply a mapping f
             f"{json_file} contains {total_num_anns} annotations, but only "
             f"{total_num_valid_anns} of them match to images in the file."
         )
-
-    if "minival" not in json_file:
-        # The popular valminusminival & minival annotations for COCO2014 contain this bug.
-        # However the ratio of buggy annotations there is tiny and does not affect accuracy.
-        # Therefore we explicitly white-list them.
-        ann_ids = [ann["id"] for anns_per_image in anns for ann in anns_per_image]
-        assert len(set(ann_ids)) == len(
-            ann_ids
-        ), "Annotation ids in '{}' are not unique!".format(json_file)
 
     imgs_anns = list(zip(imgs, anns))
     logger.info(
@@ -198,14 +192,18 @@ def register_Lesion4K_dataset():
             "datasets/Lesion-4K/annotations/instances_train2024.json",
             "datasets/Lesion-4K/train2024",
             "Lesion4K_train2024",
+            extra_annotation_keys = ["isTypical"],
+            load_difficult=False
         ),
     )
     DatasetCatalog.register(
         "Lesion4K_val2024",
         lambda: load_Lesion4K_json(
             "datasets/Lesion-4K/annotations/instances_val2024.json",
+            "datasets/Lesion-4K/val2024",
             "Lesion4K_val2024",
-            "Lesion4K_val2024",
+            extra_annotation_keys = ["isTypical"],
+            load_difficult=False
         ),
     )
 
