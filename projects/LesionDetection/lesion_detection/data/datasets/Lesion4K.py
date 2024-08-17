@@ -189,8 +189,8 @@ def register_Lesion4K_dataset():
     DatasetCatalog.register(
         "Lesion4K_train2024",
         lambda: load_Lesion4K_json(
-            "datasets/Lesion-4K/annotations/instances_train2024.json",
-            "datasets/Lesion-4K/train2024",
+            "projects/LesionDetection/datasets/Lesion-4K/annotations/instances_train2024.json",
+            "projects/LesionDetection/datasets/Lesion-4K/train2024",
             "Lesion4K_train2024",
             extra_annotation_keys = ["isTypical"],
             load_difficult=False
@@ -199,8 +199,8 @@ def register_Lesion4K_dataset():
     DatasetCatalog.register(
         "Lesion4K_val2024",
         lambda: load_Lesion4K_json(
-            "datasets/Lesion-4K/annotations/instances_val2024.json",
-            "datasets/Lesion-4K/val2024",
+            "projects/LesionDetection/datasets/Lesion-4K/annotations/instances_val2024.json",
+            "projects/LesionDetection/datasets/Lesion-4K/val2024",
             "Lesion4K_val2024",
             extra_annotation_keys = ["isTypical"],
             load_difficult=False
@@ -208,14 +208,14 @@ def register_Lesion4K_dataset():
     )
 
     MetadataCatalog.get("Lesion4K_train2024").set(
-        json_file="datasets/Lesion-4K/annotations/instances_train2024.json",
-        image_root="datasets/Lesion-4K/train2024",
+        json_file="projects/LesionDetection/datasets/Lesion-4K/annotations/instances_train2024.json",
+        image_root="projects/LesionDetection/datasets/Lesion-4K/train2024",
         evaluator_type="coco",
     )
 
     MetadataCatalog.get("Lesion4K_val2024").set(
-        json_file="datasets/Lesion-4K/annotations/instances_val2024.json",
-        image_root="datasets/Lesion-4K/val2024",
+        json_file="projects/LesionDetection/datasets/Lesion-4K/annotations/instances_val2024.json",
+        image_root="projects/LesionDetection/datasets/Lesion-4K/val2024",
         evaluator_type="coco",
     )
 

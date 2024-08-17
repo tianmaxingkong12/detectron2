@@ -19,11 +19,11 @@ model.roi_heads.num_classes = 16
 # Initialization and trainer settings
 # train = model_zoo.get_config("../projects/LesionDetection/common/train.py").train
 
-train.output_dir = os.path.join("./logs", os.path.basename(__file__).split(".")[0], time.strftime("%Y%m%d-%H%M%S",time.localtime()))
+train.output_dir = os.path.join("./projects/LesionDetection/logs", os.path.basename(__file__).split(".")[0], time.strftime("%Y%m%d-%H%M%S",time.localtime()))
 train.amp.enabled = False
 train.ddp.fp16_compression = False
 
-dataloader.train.total_batch_size = 4
+dataloader.train.total_batch_size = 2
 dataloader.evaluator = L(COCOEvaluator)(
     dataset_name="${..test.dataset.names}",
     output_dir=train.output_dir,
@@ -32,7 +32,9 @@ dataloader.evaluator = L(COCOEvaluator)(
 
 ## TODO 修改权重
 train.init_checkpoint = (
-    "detectron2://ImageNetPretrained/MAE/mae_pretrain_vit_base.pth?matching_heuristics=True"
+    #"detectron2://ImageNetPretrained/MAE/mae_pretrain_vit_base.pth?matching_heuristics=True"
+    #"/data/hanliming/offical_ckpt/MAE/mae_pretrain_vit_base.pth"
+    "/data/hanliming/offical_ckpt/detectron2/model_final_61ccd1.pkl"
 )
 
 
