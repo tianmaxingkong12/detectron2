@@ -5,7 +5,7 @@ import time
 from contextlib import ExitStack, contextmanager
 import torch
 from torch import nn
-import numpyt as np
+import numpy as np
 
 from detectron2.utils.comm import get_world_size
 from detectron2.utils.logger import log_every_n_seconds
@@ -61,7 +61,6 @@ def calculate_val_loss(
                 start_time = time.perf_counter()
                 total_data_time = 0
                 total_compute_time = 0
-                total_eval_time = 0
             start_compute_time = time.perf_counter()
             dict.get(callbacks or {}, "before_inference", lambda: None)()
             outputs = model(inputs)
@@ -129,12 +128,11 @@ def inference_context(model):
     model.train(training_mode)
 
 
-def _get_loss(self, data):
+def _get_loss(outputs):
     # How loss is calculated on train_loop 
-    metrics_dict = self._model(data)
     metrics_dict = {
         k: v.detach().cpu().item() if isinstance(v, torch.Tensor) else float(v)
-        for k, v in metrics_dict.items()
+        for k, v in outputs.items()
     }
     total_losses_reduced = sum(loss for loss in metrics_dict.values())
     return total_losses_reduced

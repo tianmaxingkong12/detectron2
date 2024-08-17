@@ -73,7 +73,7 @@ def do_train(args, cfg):
                 ddp (dict)
     """
     if comm.is_main_process():
-        wandb.init(project="detectron2", name = os.path.basename(args.co.config_file).split(".")[0], sync_tensorboard=True)
+        wandb.init(project="detectron2", name = os.path.basename(args.config_file).split(".")[0], sync_tensorboard=True)
     model = instantiate(cfg.model)
     logger = logging.getLogger("detectron2")
     logger.info("Model:\n{}".format(model))
