@@ -50,8 +50,8 @@ def calculate_val_loss(
     total_compute_time = 0
     losses = []
     with ExitStack() as stack:
-        if isinstance(model, nn.Module):
-            stack.enter_context(inference_context(model))
+        # if isinstance(model, nn.Module):
+        #     stack.enter_context(inference_context(model))
         stack.enter_context(torch.no_grad())
         start_data_time = time.perf_counter()
         dict.get(callbacks or {}, "on_start", lambda: None)()

@@ -18,6 +18,10 @@ import wandb
 
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.config import LazyConfig, instantiate
+from detectron2.data import (
+    DatasetMapper,
+    build_detection_test_loader,
+)
 from detectron2.engine import (
     AMPTrainer,
     SimpleTrainer,
@@ -48,7 +52,11 @@ def do_test(cfg, model):
     
 def do_valloss(cfg, model):
     ret = calculate_val_loss(model,
-            instantiate(cfg.dataloader.test)
+        build_detection_test_loader(
+                cfg,
+                cfg.DATASETS.TEST[0],
+                DatasetMapper(cfg,True)
+            )
     )
     return ret
 
