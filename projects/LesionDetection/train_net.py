@@ -29,7 +29,10 @@ from detectron2.engine import (
 from detectron2.engine.defaults import create_ddp_model
 from detectron2.evaluation import inference_on_dataset, print_csv_format
 from detectron2.utils import comm
+
 from lesion_detection.data.datasets.Lesion4K import register_Lesion4K_dataset
+from lesion_detection.engine.hooks import LossEvalHook
+from lesion_detection.evaluation.evaluator import calculate_val_loss
 logger = logging.getLogger("detectron2")
 
 def do_test(cfg, model):
@@ -41,6 +44,12 @@ def do_test(cfg, model):
         )
         print_csv_format(ret)
         return ret
+    
+def do_valloss(cfg, model):
+    ret = calculate_val_loss(model,
+            instantiate(cfg.dataloader.test)
+    )
+    return ret
 
 
 def do_train(args, cfg):
@@ -91,6 +100,7 @@ def do_train(args, cfg):
                 else None
             ),
             hooks.EvalHook(cfg.train.eval_period, lambda: do_test(cfg, model)),
+            LossEvalHook(cfg.train.eval_period, lambda: do_valloss(cfg, model)),
             (
                 hooks.PeriodicWriter(
                     default_writers(cfg.train.output_dir, cfg.train.max_iter),
