@@ -12,6 +12,7 @@ few common configuration parameters currently defined in "configs/common/train.p
 To add more complicated training logic, you can easily add other configs
 in the config file and implement a new train_net.py to handle them.
 """
+import os
 import logging
 import wandb
 
@@ -72,7 +73,7 @@ def do_train(args, cfg):
                 ddp (dict)
     """
     if comm.is_main_process():
-        wandb.init(project="detectron2", sync_tensorboard=True)
+        wandb.init(project="detectron2", name = os.path.basename(args.co.config_file).split(".")[0], sync_tensorboard=True)
     model = instantiate(cfg.model)
     logger = logging.getLogger("detectron2")
     logger.info("Model:\n{}".format(model))
