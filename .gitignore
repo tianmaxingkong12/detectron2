@@ -51,6 +51,6 @@ _darcs
 /projects/*/datasets
 /models
 /snippet
-/wandb
+/projects/*/wandb
 /projects/*/logs
 /projects/*/offical_ckpt
