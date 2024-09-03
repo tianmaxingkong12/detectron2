@@ -29,7 +29,7 @@ dataloader.evaluator = L(COCOEvaluator)(
 
 ## TODO 修改权重
 train.init_checkpoint = (
-    "/data/hanliming/offical_ckpt/detectron2/model_final_61ccd1.pkl"
+    "./projects/LesionDetection/offical_ckpt/detectron2/model_final_61ccd1.pkl"
 )
 train.eval_period = 100
 
