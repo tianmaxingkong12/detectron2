@@ -21,6 +21,8 @@ from detectron2.config import LazyConfig, instantiate
 from detectron2.data import (
     DatasetMapper,
     build_detection_test_loader,
+    transforms as T,
+    get_detection_dataset_dicts
 )
 from detectron2.engine import (
     AMPTrainer,
@@ -53,11 +55,19 @@ def do_test(cfg, model):
 def do_valloss(cfg, model):
     ret = calculate_val_loss(model,
         build_detection_test_loader(
-                cfg,
-                cfg.DATASETS.TEST[0],
-                DatasetMapper(cfg,True)
+                dataset=get_detection_dataset_dicts(names="Lesion4K_val2024", filter_empty=False),
+                mapper=DatasetMapper(
+                    is_train=True,
+                    augmentations=[
+                        T.ResizeShortestEdge(short_edge_length=800, max_size=1333),
+                    ],
+                    image_format=cfg.dataloader.train.mapper.image_format,
+                    recompute_boxes=False,
+                ),
+                    num_workers=4,
             )
     )
+    print_csv_format(ret)
     return ret
 
 
@@ -81,7 +91,7 @@ def do_train(args, cfg):
                 ddp (dict)
     """
     if comm.is_main_process():
-        wandb.init(project="detectron2", name = os.path.basename(args.config_file).split(".")[0], sync_tensorboard=True)
+        wandb.init(dir="projects/LesionDetection/wandb", project="detectron2", name = os.path.basename(args.config_file).split(".")[0], sync_tensorboard=True)
     model = instantiate(cfg.model)
     logger = logging.getLogger("detectron2")
     logger.info("Model:\n{}".format(model))

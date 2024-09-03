@@ -30,8 +30,6 @@ def calculate_val_loss(
             wrap the given model and override its behavior of `.eval()` and `.train()`.
         data_loader: an iterable object with a length.
             The elements it generates will be the inputs to the model.
-        evaluator: the evaluator(s) to run. Use `None` if you only want to benchmark,
-            but don't want to do any evaluation.
         callbacks (dict of callables): a dictionary of callback functions which can be
             called at each stage of inference.
 
