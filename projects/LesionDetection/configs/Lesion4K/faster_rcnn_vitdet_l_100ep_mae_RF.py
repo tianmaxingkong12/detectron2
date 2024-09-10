@@ -13,7 +13,7 @@ experiment_id = time.strftime("%Y%m%d-%H%M%S",time.localtime())
 train.output_dir = os.path.join("./projects/LesionDetection/logs", os.path.basename(__file__).split(".")[0], experiment_id)
 ## 预训练权重
 train.init_checkpoint = (
-    "projects/LesionDetection/offical_ckpt/RETFound/RETFound_oct_weights?matching_heuristics=True"
+    "projects/LesionDetection/offical_ckpt/RETFound/RETFound_oct_weights.pth?matching_heuristics=True"
 )
 
 
