@@ -2,7 +2,7 @@ import os
 import time
 from functools import partial
 
-from .faster_rcnn_vitdet_b_100ep import (
+from .faster_rcnn_vitdet_b import (
     dataloader,
     lr_multiplier,
     model, 
@@ -10,14 +10,8 @@ from .faster_rcnn_vitdet_b_100ep import (
     optimizer,
     get_vit_lr_decay_rate,
 )
-
-train.output_dir = os.path.join("./logs", os.path.basename(__file__).split(".")[0], time.strftime("%Y%m%d-%H%M%S",time.localtime()))
-train.amp.enabled = True
-train.ddp.fp16_compression = True
-dataloader.train.total_batch_size = 4
-train.init_checkpoint = (
-    "detectron2://ImageNetPretrained/MAE/mae_pretrain_vit_large.pth?matching_heuristics=True"
-)
+experiment_id = time.strftime("%Y%m%d-%H%M%S",time.localtime())
+train.output_dir = os.path.join("./logs", os.path.basename(__file__).split(".")[0], experiment_id)
 
 model.backbone.net.embed_dim = 1024
 model.backbone.net.depth = 24
