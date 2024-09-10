@@ -1,6 +1,6 @@
 import os
 import time
-from .faster_rcnn_vitdet_b import (
+from .faster_rcnn_vitdet_l import (
     dataloader,
     lr_multiplier,
     model,
