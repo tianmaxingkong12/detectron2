@@ -13,6 +13,9 @@ from .faster_rcnn_vitdet_b import (
 experiment_id = time.strftime("%Y%m%d-%H%M%S",time.localtime())
 train.output_dir = os.path.join("./logs", os.path.basename(__file__).split(".")[0], experiment_id)
 
+dataloader.train.total_batch_size = 2
+dataloader.evaluator.output_dir = train.output_dir
+
 model.backbone.net.embed_dim = 1024
 model.backbone.net.depth = 24
 model.backbone.net.num_heads = 16
