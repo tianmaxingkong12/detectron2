@@ -20,6 +20,11 @@ import torch
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 
 from detectron2.config import LazyConfig, instantiate
+from detectron2.data import (
+    build_detection_test_loader,
+    transforms as T,
+    get_detection_dataset_dicts,
+)
 from detectron2.engine import (
     SimpleTrainer,
     default_argument_parser,
@@ -30,6 +35,7 @@ from detectron2.engine import (
 from detectron2.engine.defaults import create_ddp_model
 from detectron2.evaluation import inference_on_dataset, print_csv_format
 from detectron2.utils import comm
+from detectron2.utils.logger import setup_logger
 from detectron2.utils.file_io import PathManager
 from detectron2.utils.events import (
     CommonMetricPrinter, 
@@ -41,6 +47,11 @@ from detectron2.checkpoint import DetectionCheckpointer
 
 from detrex.utils import WandbWriter
 from detrex.modeling import ema
+from detrex.data import DetrDatasetMapper
+
+from lesion_detection.data.datasets.Lesion4K import register_Lesion4K_dataset
+from lesion_detection.engine.hooks import LossEvalHook
+from lesion_detection.evaluation.evaluator import calculate_val_loss
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
@@ -147,7 +158,7 @@ class Trainer(SimpleTrainer):
 
 
 def do_test(cfg, model, eval_only=False):
-    logger = logging.getLogger("detectron2")
+    logger = logging.getLogger("lesion_detection")
 
     if eval_only:
         logger.info("Run evaluation under eval-only mode")
@@ -180,6 +191,27 @@ def do_test(cfg, model, eval_only=False):
                     ret.update(ema_ret)
         return ret
 
+def do_valloss(cfg, model):
+    ret = calculate_val_loss(model,
+        build_detection_test_loader(
+                dataset=get_detection_dataset_dicts(names="Lesion4K_val2024", filter_empty=False),
+                mapper=DetrDatasetMapper(
+                    augmentation=[
+                        T.ResizeShortestEdge(
+                            short_edge_length=800,
+                            max_size=1333,
+                        ),
+                    ],
+                    augmentation_with_crop=None,
+                    is_train=True,
+                    mask_on=False,
+                    img_format="RGB",
+                ),
+                batch_size=4,
+            )
+    )
+    print_csv_format(ret)
+    return ret
 
 def do_train(args, cfg):
     """
@@ -201,7 +233,7 @@ def do_train(args, cfg):
                 ddp (dict)
     """
     model = instantiate(cfg.model)
-    logger = logging.getLogger("detectron2")
+    logger = logging.getLogger("lesion_detection")
     logger.info("Model:\n{}".format(model))
     model.to(cfg.train.device)
     
@@ -256,12 +288,18 @@ def do_train(args, cfg):
             if comm.is_main_process()
             else None,
             hooks.EvalHook(cfg.train.eval_period, lambda: do_test(cfg, model)),
+            LossEvalHook(cfg.train.eval_period, lambda: do_valloss(cfg, model)),
             hooks.PeriodicWriter(
                 writers,
                 period=cfg.train.log_period,
             )
             if comm.is_main_process()
             else None,
+            (
+                hooks.BestCheckpointer(cfg.train.eval_period, checkpointer, val_metric="bbox/AP50", mode="max", file_prefix = "model_best_AP50")
+                if comm.is_main_process()
+                else None
+            ),
         ]
     )
 
@@ -279,7 +317,8 @@ def main(args):
     cfg = LazyConfig.load(args.config_file)
     cfg = LazyConfig.apply_overrides(cfg, args.opts)
     default_setup(cfg, args)
-    
+    setup_logger(output=cfg.train.output_dir, distributed_rank=comm.get_rank(), name="lesion_detection")
+    register_Lesion4K_dataset()
     # Enable fast debugging by running several iterations to check for any bugs.
     if cfg.train.fast_dev_run.enabled:
         cfg.train.max_iter = 20

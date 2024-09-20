@@ -1,5 +1,7 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
+import copy
 import datetime
+import itertools
 import logging
 import time
 from contextlib import ExitStack, contextmanager
@@ -7,6 +9,7 @@ import torch
 from torch import nn
 import numpy as np
 
+import detectron2.utils.comm as comm
 from detectron2.utils.comm import get_world_size
 from detectron2.utils.logger import log_every_n_seconds
 
@@ -46,6 +49,7 @@ def calculate_val_loss(
     start_time = time.perf_counter()
     total_data_time = 0
     total_compute_time = 0
+    total_eval_time = 0
     losses = []
     with ExitStack() as stack:
         # if isinstance(model, nn.Module):
@@ -59,19 +63,24 @@ def calculate_val_loss(
                 start_time = time.perf_counter()
                 total_data_time = 0
                 total_compute_time = 0
+                total_eval_time = 0
             start_compute_time = time.perf_counter()
             dict.get(callbacks or {}, "before_inference", lambda: None)()
             outputs = model(inputs)
-            loss_batch = _get_loss(outputs)
-            losses.append(loss_batch)
             dict.get(callbacks or {}, "after_inference", lambda: None)()
             if torch.cuda.is_available():
                 torch.cuda.synchronize()
             total_compute_time += time.perf_counter() - start_compute_time
 
+            start_eval_time = time.perf_counter()
+            loss_batch = _get_loss(outputs)
+            losses.append(loss_batch)
+            total_eval_time += time.perf_counter() - start_eval_time
+
             iters_after_start = idx + 1 - num_warmup * int(idx >= num_warmup)
             data_seconds_per_iter = total_data_time / iters_after_start
             compute_seconds_per_iter = total_compute_time / iters_after_start
+            eval_seconds_per_iter = total_eval_time / iters_after_start
             total_seconds_per_iter = (time.perf_counter() - start_time) / iters_after_start
             if idx >= num_warmup * 2 or compute_seconds_per_iter > 5:
                 eta = datetime.timedelta(seconds=int(total_seconds_per_iter * (total - idx - 1)))
@@ -81,6 +90,7 @@ def calculate_val_loss(
                         f"Inference done {idx + 1}/{total}. "
                         f"Dataloading: {data_seconds_per_iter:.4f} s/iter. "
                         f"Inference: {compute_seconds_per_iter:.4f} s/iter. "
+                        f"Eval: {eval_seconds_per_iter:.4f} s/iter. "
                         f"Total: {total_seconds_per_iter:.4f} s/iter. "
                         f"ETA={eta}"
                     ),
@@ -104,11 +114,19 @@ def calculate_val_loss(
             total_compute_time_str, total_compute_time / (total - num_warmup), num_devices
         )
     )
+
+    ## TODO batchsize设置不同有时会存在卡死的情况
+    comm.synchronize()
+    loss = comm.gather(losses, dst=0)
+    loss = list(itertools.chain(*loss))
+    mean_loss = np.mean(loss)
     # An evaluator may return None when not in main process.
     # Replace it by an empty dict instead to make it easier for downstream code to handle
-    mean_loss = np.mean(losses)
+    if not comm.is_main_process():
+        return {}
     results = {"total_val_loss":mean_loss}
-    return results
+    # Copy so the caller can do whatever with results
+    return copy.deepcopy(results)
 
 
 @contextmanager
